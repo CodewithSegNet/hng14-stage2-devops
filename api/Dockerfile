@@ -13,17 +13,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# install system deps properly (FIXED HADO LINT)
+# install system dependencies (FIXED for hadolint)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl=7.* \
     && rm -rf /var/lib/apt/lists/*
-
 
 # create non-root user
 RUN useradd -m appuser
 
 # copy dependencies
 COPY --from=builder /root/.local /home/appuser/.local
+
 ENV PATH=/home/appuser/.local/bin:$PATH
 
 # switch user
@@ -31,7 +31,8 @@ USER appuser
 
 COPY . .
 
-# HEALTHCHECK (better endpoint than /docs)
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:8000/health || exit 1
+# healthcheck MUST use installed curl
+HEALTHCHECK --interval=30s --timeout=5s \
+  CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
