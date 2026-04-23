@@ -6,166 +6,109 @@ on:
   pull_request:
 
 jobs:
-
-# =========================
-# LINT
-# =========================
   lint:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- Python ----------
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
+      # ---------- Python Lint ----------
       - name: Python Lint
         run: |
           pip install flake8
-          flake8 api worker --exclude venv
+          flake8 api worker
 
-      # ---------- Node ----------
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
+      # ---------- JS Lint ----------
       - name: JS Lint
         run: |
           cd frontend
           npm install
           npx eslint .
 
-      # ---------- Docker Lint ----------
+      # ---------- FIXED Docker Lint (NO ACTION) ----------
+      - name: Install Hadolint
+        run: |
+          docker pull hadolint/hadolint
+
       - name: Lint API Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: api/Dockerfile
+        run: |
+          docker run --rm -i hadolint/hadolint < api/Dockerfile
 
       - name: Lint Worker Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: worker/Dockerfile
+        run: |
+          docker run --rm -i hadolint/hadolint < worker/Dockerfile
 
       - name: Lint Frontend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: frontend/Dockerfile
+        run: |
+          docker run --rm -i hadolint/hadolint < frontend/Dockerfile
 
 
-# =========================
-# TEST
-# =========================
   test:
     runs-on: ubuntu-latest
     needs: lint
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
+      - name: Install deps
         run: |
-          pip install pytest pytest-cov fastapi httpx
+          pip install pytest pytest-cov
 
       - name: Run tests
         run: |
-          pytest --cov=api --cov-report=xml
+          pytest --cov=api
 
 
-# =========================
-# BUILD
-# =========================
   build:
     runs-on: ubuntu-latest
     needs: test
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build API
+      - name: Build images
         run: |
           docker build -t api:${{ github.sha }} ./api
-
-      - name: Build Worker
-        run: |
           docker build -t worker:${{ github.sha }} ./worker
-
-      - name: Build Frontend
-        run: |
           docker build -t frontend:${{ github.sha }} ./frontend
 
 
-# =========================
-# SECURITY SCAN
-# =========================
   security:
     runs-on: ubuntu-latest
     needs: build
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: api:${{ github.sha }}
-          format: sarif
-          output: trivy-api.sarif
           severity: CRITICAL
           exit-code: 1
 
-      - name: Upload report
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: trivy-api.sarif
 
-
-# =========================
-# INTEGRATION TEST
-# =========================
   integration:
     runs-on: ubuntu-latest
     needs: security
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Start stack
-        run: docker compose up -d --build
+        run: docker-compose up -d --build
 
-      - name: Wait for services
-        run: sleep 20
+      - name: Wait
+        run: sleep 15
 
-      - name: Create job via API
+      - name: Test API
         run: |
           curl -X POST http://localhost:8000/jobs
 
       - name: Cleanup
         if: always()
-        run: docker compose down
+        run: docker-compose down
 
 
-# =========================
-# DEPLOY
-# =========================
   deploy:
     runs-on: ubuntu-latest
     needs: integration
     if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Rolling deploy simulation
-        run: |
-          echo "Starting deployment..."
-          echo "Waiting for health checks..."
-          sleep 5
-          echo "Deployment successful"
+      - name: Deploy
+        run: echo "Rolling deploy simulation complete"
