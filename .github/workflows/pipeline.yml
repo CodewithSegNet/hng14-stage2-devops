@@ -24,7 +24,7 @@ jobs:
           npx eslint .
 
       - name: Docker Lint
-        uses: hadolint/hadolint-action@latest
+        uses: hadolint/hadolint-action@v3.1.0
 
   test:
     runs-on: ubuntu-latest
