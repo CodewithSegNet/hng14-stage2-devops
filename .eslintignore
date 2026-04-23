@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+venv
+**/venv
+api/venv
+frontend/node_modules
+coverage
+**/coverage
+venv
+api/venv
+frontend/node_modules
+node_modules
+coverage
+dist
+build
+*.min.js

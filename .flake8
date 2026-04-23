@@ -1,8 +1,10 @@
 [flake8]
 exclude =
     venv,
-    .venv,
     api/venv,
+    frontend/node_modules,
+    node_modules,
+    coverage,
     __pycache__,
     .git,
     dist,
