@@ -5,6 +5,11 @@ services:
     image: redis:7-alpine
     networks:
       - app-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   api:
     build: ./api
@@ -46,7 +51,7 @@ services:
       API_URL: ${API_URL}
     depends_on:
       api:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app-net
     ports:

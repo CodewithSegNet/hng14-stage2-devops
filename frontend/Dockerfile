@@ -2,14 +2,16 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-RUN addgroup -S appuser && adduser -S appuser -G appuser
-USER appuser
+# create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
-HEALTHCHECK CMD wget --spider http://localhost:3000 || exit 1
+USER appuser
+
+HEALTHCHECK CMD wget -qO- http://localhost:3000 || exit 1
 
 CMD ["npm", "start"]
