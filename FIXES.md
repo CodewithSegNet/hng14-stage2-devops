@@ -4,7 +4,7 @@
 - file: api/main.py
 - line: 8
 - issue: redis was hardcoded to "localhost", which fails in the containerized environment
-- fix: replaced with environment variable
+- fix: replaced with environment variable, , and included a fallback
 
 ### Fix 2: Frontend API URL hardcoded
 - file: frontend/app.js
