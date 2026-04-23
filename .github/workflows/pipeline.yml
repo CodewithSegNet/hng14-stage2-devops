@@ -2,11 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
 
 jobs:
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -61,9 +60,9 @@ jobs:
       - name: Scan with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'api:${{ github.sha }}'
-          severity: 'CRITICAL'
-          exit-code: '1'
+          image-ref: "api:${{ github.sha }}"
+          severity: "CRITICAL"
+          exit-code: "1"
 
   integration:
     runs-on: ubuntu-latest
