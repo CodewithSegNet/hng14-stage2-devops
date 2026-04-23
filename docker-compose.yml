@@ -1,51 +1,73 @@
-version: "3.9"
-
 services:
   redis:
     image: redis:7-alpine
     networks:
       - app-net
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   api:
     build: ./api
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - app-net
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   worker:
     build: ./worker
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - app-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   frontend:
     build: ./frontend
     environment:
-      API_URL: http://api:8000
+      - API_URL=${API_URL:-http://api:8000}
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-net
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
 networks:
   app-net:

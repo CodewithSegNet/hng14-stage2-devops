@@ -1,32 +1,32 @@
-FROM python:3.11-slim AS builder
+# Stage 1: Build dependencies
+FROM python:3.11-alpine AS builder
 
 WORKDIR /app
+
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --user -r requirements.txt
+# hadolint ignore=DL3013
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-
-FROM python:3.11-slim
+# Stage 2: Runtime
+FROM python:3.11-alpine AS runtime
 
 WORKDIR /app
 
-# hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl
 
-# create user
-RUN useradd -m appuser
+# create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# copy python deps
-COPY --from=builder /root/.local /home/appuser/.local
-ENV PATH=/home/appuser/.local/bin:$PATH
+# copy python deps from builder
+COPY --from=builder /install /usr/local
+
+COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-COPY . .
-
-HEALTHCHECK --interval=30s --timeout=5s \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

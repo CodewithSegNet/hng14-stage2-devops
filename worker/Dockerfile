@@ -1,23 +1,29 @@
-FROM python:3.11-slim
+# Stage 1: Install dependencies
+FROM python:3.11-alpine AS builder
 
 WORKDIR /app
 
-# hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
 
-RUN useradd -m appuser
+# hadolint ignore=DL3013
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.11-alpine AS runtime
+
+WORKDIR /app
+
+# create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# copy python deps from builder
+COPY --from=builder /install /usr/local
+
+COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-ENV PATH=/home/appuser/.local/bin:$PATH
-
-COPY . .
-
-HEALTHCHECK CMD pgrep -f worker.py || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD pgrep -f worker.py || exit 1
 
 CMD ["python", "worker.py"]
