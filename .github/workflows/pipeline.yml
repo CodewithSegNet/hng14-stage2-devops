@@ -78,7 +78,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan API image
+      - name: Build API image again (required because jobs are isolated)
+        run: docker build -t api:${{ github.sha }} ./api
+
+      - name: Build Worker image again
+        run: docker build -t worker:${{ github.sha }} ./worker
+
+      - name: Build Frontend image again
+        run: docker build -t frontend:${{ github.sha }} ./frontend
+
+      - name: Scan API image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: api:${{ github.sha }}
