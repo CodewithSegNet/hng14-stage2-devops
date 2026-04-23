@@ -1,8 +1,8 @@
-FROM node:18-apline
+FROM node:18-alpine
 
 WORKDIR /app
 
-RUN add -D appuser
+RUN addgroup -S appuser && adduser -S appuser -G appuser
 USER appuser
 
 COPY package*.json ./

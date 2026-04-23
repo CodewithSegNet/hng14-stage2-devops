@@ -3,7 +3,7 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --user -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt
 
 # stage 2 - runtime
 FROM python:3.11-slim
@@ -19,6 +19,8 @@ COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH
 
 COPY . .
+
+RUN apt-get update && apt-get install -y curl
 
 # HEALTHCHECK
 HEALTHCHECK CMD curl -f http://localhost:8000/docs || exit 1
