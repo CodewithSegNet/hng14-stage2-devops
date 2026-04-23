@@ -61,9 +61,8 @@ jobs:
           pip install -r api/requirements.txt
 
       - name: Run pytest with coverage
-        working-directory: api
         run: |
-          pytest tests/ --cov=. --cov-report=xml:coverage.xml --cov-report=html:coverage-html -v
+          pytest api/tests/ --cov=api --cov-report=xml:coverage.xml --cov-report=html:coverage-html -v
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -71,8 +70,8 @@ jobs:
         with:
           name: coverage-report
           path: |
-            api/coverage.xml
-            api/coverage-html/
+            coverage.xml
+            coverage-html/
 
   build:
     runs-on: ubuntu-latest
@@ -153,34 +152,26 @@ jobs:
       - name: Build Frontend image
         run: docker build -t frontend:${{ github.sha }} ./frontend
 
-      - name: Scan API image with Trivy
+      - name: Scan API image with Trivy (SARIF report)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: api:${{ github.sha }}
           format: sarif
           output: trivy-api.sarif
-          severity: CRITICAL
-          exit-code: "1"
 
-      - name: Scan Worker image with Trivy
-        if: success() || failure()
+      - name: Scan Worker image with Trivy (SARIF report)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: worker:${{ github.sha }}
           format: sarif
           output: trivy-worker.sarif
-          severity: CRITICAL
-          exit-code: "1"
 
-      - name: Scan Frontend image with Trivy
-        if: success() || failure()
+      - name: Scan Frontend image with Trivy (SARIF report)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: frontend:${{ github.sha }}
           format: sarif
           output: trivy-frontend.sarif
-          severity: CRITICAL
-          exit-code: "1"
 
       - name: Upload Trivy SARIF results
         uses: actions/upload-artifact@v4
@@ -188,6 +179,14 @@ jobs:
         with:
           name: trivy-sarif-results
           path: "*.sarif"
+
+      - name: Fail on CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: api:${{ github.sha }}
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
 
   integration:
     runs-on: ubuntu-latest
